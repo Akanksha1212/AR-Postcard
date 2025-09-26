@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <title>MindAR Video Cover Example</title>
+</head>
+
+<body>
+    <!-- Tap-to-start overlay for mobile audio -->
+    <div id="startOverlay" style="
+        position:fixed;
+        top:0; left:0;
+        width:100%; height:100%;
+        background:#000; color:#fff;
+        display:flex; align-items:center; justify-content:center;
+        font-size:24px; z-index:9999; cursor:pointer;">
+        Tap to Start AR
+    </div>
+
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false">
+
+        <a-assets>
+            <!-- Local MP4 video -->
+            <video id="myVideo" src="./myvideo.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-video id="videoTarget" src="#myVideo" width="1" height="1" position="0 0 0" rotation="0 0 0"
+                autoplay="false" loop="true" muted></a-video>
+        </a-entity>
+
+        <script>
+            const videoEl = document.querySelector('#myVideo');
+            const videoEntity = document.querySelector('#videoTarget');
+            const targetEl = document.querySelector('[mindar-image-target]');
+            const overlay = document.querySelector('#startOverlay');
+
+            // Start AR and unmute on user tap
+            overlay.addEventListener('click', () => {
+                videoEl.muted = false;
+                overlay.style.display = 'none';
+            });
+
+            // Function to scale video to cover the target
+            function scaleVideoCover(videoEntity, target) {
+                if (!target || !target.tracked || videoEl.videoWidth === 0) return;
+
+                const targetWidth = target.width;
+                const targetHeight = target.height;
+                const videoAspect = videoEl.videoWidth / videoEl.videoHeight;
+                const targetAspect = targetWidth / targetHeight;
+
+                let width, height;
+
+                if (videoAspect < targetAspect) {
+                    width = targetWidth;
+                    height = width / videoAspect;
+                } else {
+                    height = targetHeight;
+                    width = height * videoAspect;
+                }
+
+                videoEntity.setAttribute('width', targetWidth);
+                videoEntity.setAttribute('height', targetHeight);
+                videoEntity.setAttribute('position', '0 0 0');
+            }
+
+            // Play and scale when target is found
+            targetEl.addEventListener('targetFound', () => {
+                videoEl.play();
+                scaleVideoCover(videoEntity, targetEl.components['mindar-image-target']);
+            });
+
+            // Pause video when target is lost
+            targetEl.addEventListener('targetLost', () => {
+                videoEl.pause();
+            });
+
+            // Update scaling on target update
+            targetEl.addEventListener('targetUpdate', () => {
+                scaleVideoCover(videoEntity, targetEl.components['mindar-image-target']);
+            });
+
+            // Scale once video metadata is loaded
+            videoEl.addEventListener('loadedmetadata', () => {
+                scaleVideoCover(videoEntity, targetEl.components['mindar-image-target']);
+            });
+        </script>
+    </a-scene>
+</body>
+
+</html>
