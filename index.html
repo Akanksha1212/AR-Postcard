@@ -48,25 +48,34 @@
 
             // Function to scale video to cover the target
             function scaleVideoCover(videoEntity, target) {
-                if (!target || !target.tracked || videoEl.videoWidth === 0) return;
+                if (!videoEl.videoWidth || videoEl.videoWidth === 0) return;
 
-                const targetWidth = target.width;
-                const targetHeight = target.height;
+                // Use fixed target dimensions (standard AR target is typically 1x1)
+                const targetWidth = 1;
+                const targetHeight = 1;
                 const videoAspect = videoEl.videoWidth / videoEl.videoHeight;
-                const targetAspect = targetWidth / targetHeight;
+                const targetAspect = targetWidth / targetHeight; // This will be 1 for square target
 
                 let width, height;
 
-                if (videoAspect < targetAspect) {
-                    width = targetWidth;
-                    height = width / videoAspect;
-                } else {
+                // For cover behavior: ensure video fills entire target area
+                if (videoAspect > targetAspect) {
+                    // Video is wider than target - scale to fit height, width will overflow
                     height = targetHeight;
                     width = height * videoAspect;
+                } else {
+                    // Video is taller than target - scale to fit width, height will overflow  
+                    width = targetWidth;
+                    height = width / videoAspect;
                 }
 
-                videoEntity.setAttribute('width', targetWidth);
-                videoEntity.setAttribute('height', targetHeight);
+                console.log(`Video: ${videoEl.videoWidth}x${videoEl.videoHeight}, Aspect: ${videoAspect}`);
+                console.log(`Target: ${targetWidth}x${targetHeight}, Aspect: ${targetAspect}`);
+                console.log(`Setting video to: ${width}x${height}`);
+
+                // Apply the calculated dimensions for true cover behavior
+                videoEntity.setAttribute('width', width);
+                videoEntity.setAttribute('height', height);
                 videoEntity.setAttribute('position', '0 0 0');
             }
 
@@ -88,6 +97,13 @@
 
             // Scale once video metadata is loaded
             videoEl.addEventListener('loadedmetadata', () => {
+                console.log('Video metadata loaded');
+                scaleVideoCover(videoEntity, targetEl.components['mindar-image-target']);
+            });
+
+            // Additional safety - scale after video can play
+            videoEl.addEventListener('canplay', () => {
+                console.log('Video can play');
                 scaleVideoCover(videoEntity, targetEl.components['mindar-image-target']);
             });
         </script>
